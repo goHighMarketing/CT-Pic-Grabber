@@ -16,6 +16,7 @@ type
     Button1: TButton;
     Image1: TImage;
     MainMenu1: TMainMenu;
+    MenuItemSave: TMenuItem;
     MenuItemAbout: TMenuItem;
     MenuItemHelp: TMenuItem;
     MenuItemFile: TMenuItem;
@@ -29,8 +30,8 @@ type
     procedure MenuItemQuitClick(Sender: TObject);
   private
     function getHTML(): string;
-    function getHTML2(aURL: string): string;
-    procedure getRandomPic(links: TStringList);
+    function getPicHTML(aURL: string): string;
+    procedure GetRandomPic(urlList: TStringList);
     function getURLs(html: string): TStringList;
     function getURLs2(html: string): string;
 
@@ -61,24 +62,19 @@ procedure TForm1.Button1Click(Sender: TObject);
 var
   html: string;
   links: TStringList;
-  File1: TextFile;
 begin
      links:= TStringList.Create;
      html:= getHTML();
      links:= getURLs(html);
      if links.Count > 0 then
-        getRandomPic(links)
+        GetRandomPic(links)
      else
-      begin
+     begin
         if IsConsole then
-        begin
-          WriteLn('Nothing Found' + sLineBreak);
-        end
+          WriteLn('Nothing Found' + sLineBreak)
         else
           ShowMessage('Nothing Found'+ sLineBreak);
-      end;
-
-
+     end;
 end;
 
 function TForm1.getHTML(): string;
@@ -130,86 +126,106 @@ begin
      result:= picLinks;
 end;
 
-procedure Tform1.getRandomPic(links: TStringList);
+function TForm1.getURLs2(html: string): string;
 var
-   url, url2, pic_html: string;
-   client: TFPHTTPClient;
-   inx: integer;
-   newURLs: TStringStream;
+   ndx, ndx2: integer;
+   url, str: string;
+   check: TStringArray;
 begin
-     client := TFPHTTPClient.Create(nil);
-     newURLs := TStringStream.Create('');
-     url := '';
-     randomize;
-     inx := Random(links.Count);
-     if inx <= 0 then
+     ndx := html.IndexOf('<img');
+     while ndx > 0 do
      begin
-       StatusBar1.Panels.Items[1].Text:= 'getRandomPic() - Empty list, no pics found';
-       exit;
+       ndx := html.IndexOf('https', ndx);
+       ndx2 := html.IndexOf('?', ndx);
+       url := html.Substring(ndx, ndx2 - ndx);
+       if url.Contains('photo-') then
+          break;
+       ndx := html.IndexOf('<img', ndx2);
      end;
-     url:= links[inx].Replace('/download', '');
-     StatusBar1.Panels.Items[1].Text:= url;
-     pic_html:= getHTML2(url);
-  //   WriteLn(pic_html);
-     url2:= getURLs2(pic_html);
-     WriteLn('URL2 is: ' + url2);
-     StatusBar1.Panels.Items[1].Text:= url2;
-     client.SimpleGet(url2, newURLs);
-     newURLs.Position:= 0;
-     Image1.Picture.LoadFromStream(newURLs);
-     Image1.Stretch:= true;
-     Image1.Proportional:= true;
+     result := url;
 end;
 
-function TForm1.getHTML2(aURL: string): string;
+procedure TForm1.GetRandomPic(urlList: TStringList);
+var
+   newURLs: TStringStream;
+   client: TFPHTTPClient;
+   url, url2, pic_html: string;
+   idx: integer;
+begin
+     NewURLs := TStringStream.Create('');
+     client := TFPHTTPClient.Create(nil);
+     url := '';
+ //    WriteLn('urlList COUNT is: ' + intToStr(urlList.Count) + sLineBreak);
+     randomize;
+     idx := Random(urlList.Count);
+     if idx < 0 then
+     begin
+         StatusBar1.Panels.Items[1].Text := 'setPic() invalid index, no pic url found';
+         exit;
+     end;
+     url := urlList[idx].Replace('/download', '');
+     StatusBar1.Panels.Items[1].Text := url;
+     writeln(url+ ' ' + intToStr(idx) + sLineBreak);
+     pic_html := getPicHTML(url);
+  //   Writeln('PIC_HTML: '+pic_html);
+     url2 := getURLs2(pic_html);
+     StatusBar1.Panels.Items[1].Text := 'URL is: ' + url2;
+     writeln('URL is: ' + url2);
+     client := TFPHTTPClient.Create(nil);
+     client.HTTPMethod('HEAD', url2, nil, []);
+     if client.ResponseStatusCode = 404 then
+     begin
+        write('404 - Picture not found');
+        exit;
+     end;
+     StatusBar1.Panels.Items[1].Text := url;
+    // Writeln(url);
+     NewURLs := TStringStream.Create('');
+     try
+     client.SimpleGet(url2, NewURLs);
+     NewURLs.Position:=0;
+     Image1.Picture.LoadFromStream(newURLs);
+     Image1.Stretch := True;
+     Image1.Proportional := True;
+     except
+        on E : Exception do
+       begin
+         ShowMessage('setPic Exception ' + E.ClassName + ':_' +  E.Message);
+       end;
+       end;
+end;
+
+function TForm1.getPicHTML(aURL: string): string;
 var
    cli: TFPHTTPClient;
    html: string;
    Mstream: TMemoryStream;
 begin
-      InitSSLInterface;
-      cli:= TFPHTTPClient.Create(nil);
-      Mstream:= TMemoryStream.Create;
-      cli.AllowRedirect:= true;
-      cli.AddHeader('User-Agent', 'Mozilla/5.0 (Compatible; fpweb)');
-      cli.AddHeader('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8');
-      cli.AddHeader('Accept-Encoding', 'deflate');
-      cli.AddHeader('Accept-Language', 'en-US,*');
-      try
-        cli.Get(aURL, Mstream);
-        Mstream.Position:= 0;
-        SetLength(html, Mstream.Size);
-        Mstream.ReadBuffer(html[1], Mstream.Size);
-      except on E:EHttpclient do
-      begin
-        if IsConsole then
-           WriteLn('Exception: ' + E.Message + sLineBreak + 'URL: ' + aURL)
-        else
-          ShowMessage('Exception: ' + E.Message + sLineBreak + 'URL: ' + aURL);
-      end;
-      end;
-
-      Mstream.Free;
-      cli.Free;
-      result:= html;
-end;
-
-function TForm1.getURLs2(html: string): string;
-var
-   ndx, ndx2: integer;
-   url: string;
-begin
-     ndx:= html.IndexOf('<img');
-     while ndx >= 0 do
+     InitSSLInterface;
+     Mstream := TMemoryStream.Create;
+     cli := TFPHTTPClient.Create(nil);
+     cli.AllowRedirect := true;
+     cli.AddHeader('User-Agent', 'Mozilla/5.0 (Compatible; fpweb)');
+     cli.AddHeader('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8');
+     cli.AddHeader('Accept-Encoding', 'deflate');
+     cli.AddHeader('Accept-Language', 'en-US,*');
+     try
+      cli.Get(aURL, Mstream);
+      Mstream.Position := 0;
+      SetLength(html, Mstream.Size);
+      Mstream.ReadBuffer(html[1], Mstream.Size);
+      writeLn('Inside getPicHTML()'+sLineBreak);
+     except on E:EHttpclient do
      begin
-          ndx:= html.IndexOf('https', ndx);
-          ndx2:= html.IndexOf('?', ndx);
-          url:= html.Substring(ndx, ndx2 - ndx);
-          if url.Contains('photo-') then
-             break;
-          ndx:= html.IndexOf('<img', ndx2);
+       if IsConsole then
+          WriteLn('Exception: ' + E.Message + sLineBreak + 'URL: ' + aURL)
+       else
+         ShowMessage('Exception: ' + E.Message + sLineBreak + 'URL: ' + aURL);
      end;
-     result:= url;
+     end;
+     MStream.Free;
+     cli.Free;
+     result := html;
 end;
 
 end.
