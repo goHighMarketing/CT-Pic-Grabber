@@ -1,0 +1,4 @@
+gtk-quit.png
+save.png
+prefs.png
+about-icon.png
