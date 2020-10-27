@@ -10,14 +10,15 @@ object Form1: TForm1
   LCLVersion = '7.2'
   object Image1: TImage
     AnchorSideLeft.Control = Owner
+    AnchorSideLeft.Side = asrCenter
     AnchorSideTop.Control = Owner
     AnchorSideRight.Control = Owner
-    AnchorSideRight.Side = asrBottom
+    AnchorSideRight.Side = asrCenter
     AnchorSideBottom.Control = Panel1
     Left = 10
     Height = 382
     Top = 16
-    Width = 737
+    Width = 736
     Anchors = [akTop, akLeft, akRight, akBottom]
     BorderSpacing.Left = 10
     BorderSpacing.Top = 16
@@ -37,8 +38,8 @@ object Form1: TForm1
     Anchors = [akLeft, akBottom]
     BorderSpacing.Right = 10
     BorderSpacing.Bottom = 6
-    ClientHeight = 143
-    ClientWidth = 738
+    ClientHeight = 139
+    ClientWidth = 734
     TabOrder = 0
     object Button1: TButton
       AnchorSideLeft.Control = Panel1
