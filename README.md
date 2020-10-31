@@ -21,4 +21,4 @@ Use the **Arrow buttons, or keys on your keyboard** to scroll through the availa
 
 Use the **Z** key to remove the panels for a clean picture view.  Press **Z** again to restore the controls.
 
-**Save** your pictures using the main menu *File, Save*.
+**Save** your pictures using the main menu *File, Save* or **CTRL+S** on the keyboard.
