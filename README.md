@@ -23,4 +23,4 @@ Use the **Z** key to remove the panels for a clean picture view.  Press **Z** ag
 
 **Save** your pictures using the main menu *File, Save* or **CTRL+S** on the keyboard.
 
-** Save full set ** - Save all the grabbed images.
+**Save full set** - Save all the grabbed images.
