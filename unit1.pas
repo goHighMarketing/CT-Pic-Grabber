@@ -7,7 +7,7 @@ interface
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Menus, ExtCtrls,
   ComCtrls, StdCtrls, unit2, openssl, opensslsockets, fphttpclient, LCLType,
-  Spin;
+  Spin, inifiles;
 
 type
 
@@ -23,6 +23,7 @@ type
     LabelTotal: TLabel;
     LabelSaved: TLabel;
     MainMenu1: TMainMenu;
+    MenuItemSaveSet: TMenuItem;
     MenuItemSave: TMenuItem;
     MenuItemAbout: TMenuItem;
     MenuItemHelp: TMenuItem;
@@ -31,6 +32,7 @@ type
     MenuItemEdit: TMenuItem;
     MenuItemQuit: TMenuItem;
     Panel1: TPanel;
+    ProgressBar1: TProgressBar;
     SaveDialog1: TSaveDialog;
     SpinEdit1: TSpinEdit;
     StatusBar1: TStatusBar;
@@ -40,9 +42,12 @@ type
     procedure Button1Click(Sender: TObject);
     procedure EditSearchKeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
+    procedure FormCreate(Sender: TObject);
+    procedure FormShow(Sender: TObject);
     procedure MenuItemAboutClick(Sender: TObject);
     procedure MenuItemQuitClick(Sender: TObject);
     procedure MenuItemSaveClick(Sender: TObject);
+    procedure MenuItemSaveSetClick(Sender: TObject);
     procedure SpinEdit1KeyDown(Sender: TObject; var Key: Word;
       Shift: TShiftState);
     procedure Timer1Timer(Sender: TObject);
@@ -53,6 +58,8 @@ type
     procedure getRandomPic(links: TStringList);
     function getURLs(html: string): TStringList;
     function getURLs2(html: string): string;
+    function ReadIni(): TStringList;
+    procedure SaveIni(const aFilename: string);
 
   public
 
@@ -63,12 +70,41 @@ var
   newURLs: TStringStream;
   inx: integer;
   links: TStringList;
+  selectedPath, lastSavedDir, iniPath: string;
 
 implementation
 
 {$R *.frm}
 
 { TForm1 }
+
+procedure TForm1.SaveIni(const aFilename: string);
+var
+   vIni: TIniFile;
+begin
+     vIni:= TIniFile.Create(iniPath + aFilename);
+     try
+       vIni.WriteString('Main', 'CurrentPath', selectedPath);
+     finally
+       vIni.Free;
+     end;
+end;
+
+function TForm1.ReadIni(): TStringList;
+var
+   INI, slInfo: TStringList;
+begin
+     slInfo:= TStringList.Create;
+     INI:= TStringList.Create;
+     try
+       INI.LoadFromFile(iniPath + 'ct-pic.ini');
+       slInfo.Add(INI.Values['CurrentPath']);
+       lastSavedDir:= slInfo[0];
+     finally
+       INI.Free;
+     end;
+     result:= slInfo;
+end;
 
 procedure TForm1.MenuItemQuitClick(Sender: TObject);
 begin
@@ -88,14 +124,73 @@ begin
       ShowMessage('No Pic Found!' + sLineBreak + 'Grab a picture first and try again.');
       exit;
     end;
-    SaveDialog1.FileName:= GetUserDir + 'Pictures/' + filename;
+    if lastSavedDir > '' then
+       SaveDialog1.FileName:= lastSavedDir + filename;
+    if lastSavedDir = '' then
+       SaveDialog1.FileName:= GetUserDir + 'Pictures/' + filename;
     if SaveDialog1.Execute then
     begin
          newURLs.SaveToFile(SaveDialog1.Filename);
+         selectedPath:= ExtractFilePath(SaveDialog1.FileName);
+         SaveIni(iniPath + 'ct-pic.ini');
+         ReadIni();
          LabelSaved.Caption:= 'Pic saved as: ' + SaveDialog1.FileName;
          Timer1.Interval:= 10000;
          Timer1.Enabled:= true;
     end;
+end;
+
+procedure TForm1.MenuItemSaveSetClick(Sender: TObject);
+var
+  filename, url: string;
+  sections: TStringArray;
+  i, progress, step: integer;
+begin
+    url:= Statusbar1.Panels.Items[1].Text;
+    sections:= url.Split('/');
+    filename:= sections[4] + '.jpg';
+    progress:= 1;
+    step:= 1;
+    if filename = '.jpg' then
+    begin
+      ShowMessage('No Pic Found!' + sLineBreak + 'Grab a picture first and try again.');
+      exit;
+    end;
+     if lastSavedDir > '' then
+        SaveDialog1.FileName:= lastSavedDir + filename;
+     if lastSavedDir = '' then
+        SaveDialog1.FileName:= GetUserDir + 'Pictures/' + filename;
+    if SaveDialog1.Execute then
+    begin
+         selectedPath:= ExtractFilePath(SaveDialog1.FileName);
+         SaveIni(iniPath + 'ct-pic.ini');
+         ReadIni();
+         for i:= 0 to links.Count -1 do
+         begin
+              url:= links[i];
+              sections:= url.Split('/');
+              filename:= sections[4] + '.jpg';
+              if filename = '.jpg' then continue;
+              if not sections[3].Contains('photos') then continue;
+              if lastSavedDir > '' then
+                 SaveDialog1.FileName:= lastSavedDir + filename;
+              if lastSavedDir = '' then
+                 SaveDialog1.FileName:= GetUserDir + 'Pictures/' + filename;
+              getPic(links[i]);
+              newURLs.SaveToFile(SaveDialog1.Filename);
+              LabelPicNumber.Caption:= IntToStr(i + 1);
+              SpinEdit1.Value:= i + 1;
+              progress:= (step * 100) div links.Count;
+              ProgressBar1.Position:= progress;
+              Application.ProcessMessages;
+              inc(step);
+              if inx = links.Count then break;
+         end;
+         LabelSaved.Caption:= 'Set Saved Complete!';
+         Timer1.Interval:= 10000;
+         Timer1.Enabled:= true;
+    end;
+
 end;
 
 procedure TForm1.SpinEdit1KeyDown(Sender: TObject; var Key: Word;
@@ -185,6 +280,17 @@ begin
      if EditSearch.Text = '' then exit;
      if Key = VK_Return then
         Button1.Click;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+     iniPath:= Application.Location;
+end;
+
+procedure TForm1.FormShow(Sender: TObject);
+begin
+     lastSavedDir:= ReadIni()[0];
+     WriteLn('Last Saved Dir = ' + lastSavedDir);
 end;
 
 function TForm1.getHTML(): string;
