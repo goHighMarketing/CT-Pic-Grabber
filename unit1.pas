@@ -6,7 +6,8 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, Menus, ExtCtrls,
-  ComCtrls, StdCtrls, unit2, openssl, opensslsockets, fphttpclient;
+  ComCtrls, StdCtrls, unit2, openssl, opensslsockets, fphttpclient, LCLType,
+  Spin;
 
 type
 
@@ -14,7 +15,12 @@ type
 
   TForm1 = class(TForm)
     Button1: TButton;
+    BtnBack: TButton;
+    BtnForward: TButton;
+    EditSearch: TEdit;
     Image1: TImage;
+    LabelPicNumber: TLabel;
+    LabelTotal: TLabel;
     LabelSaved: TLabel;
     MainMenu1: TMainMenu;
     MenuItemSave: TMenuItem;
@@ -26,16 +32,24 @@ type
     MenuItemQuit: TMenuItem;
     Panel1: TPanel;
     SaveDialog1: TSaveDialog;
+    SpinEdit1: TSpinEdit;
     StatusBar1: TStatusBar;
     Timer1: TTimer;
+    procedure BtnBackClick(Sender: TObject);
+    procedure BtnForwardClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure EditSearchKeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
     procedure MenuItemAboutClick(Sender: TObject);
     procedure MenuItemQuitClick(Sender: TObject);
     procedure MenuItemSaveClick(Sender: TObject);
+    procedure SpinEdit1KeyDown(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
     procedure Timer1Timer(Sender: TObject);
   private
     function getHTML(): string;
     function getHTML2(aURL: string): string;
+    procedure getPic(url: string);
     procedure getRandomPic(links: TStringList);
     function getURLs(html: string): TStringList;
     function getURLs2(html: string): string;
@@ -47,6 +61,8 @@ type
 var
   Form1: TForm1;
   newURLs: TStringStream;
+  inx: integer;
+  links: TStringList;
 
 implementation
 
@@ -82,6 +98,21 @@ begin
     end;
 end;
 
+procedure TForm1.SpinEdit1KeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+    if links = nil then exit;
+    if key = VK_Return then
+    begin
+      if SpinEdit1.Value - 1 > links.Count - 1 then exit;
+
+      inx:= SpinEdit1.Value - 1;
+      GetPic(links[inx]);
+      SpinEdit1.Value:= inx + 1;
+      LabelPicNumber.Caption:= IntToStr(inx + 1);
+    end;
+end;
+
 procedure TForm1.Timer1Timer(Sender: TObject);
 begin
      Timer1.Enabled:= false;
@@ -96,7 +127,6 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 var
   html: string;
-  links: TStringList;
   File1: TextFile;
 begin
      links:= TStringList.Create;
@@ -117,6 +147,46 @@ begin
 
 end;
 
+procedure TForm1.BtnBackClick(Sender: TObject);
+begin
+     if links = nil then exit;
+     if links.Count = 0 then exit;
+     if inx > 0 then
+        dec(inx)
+     else
+        inx:= links.Count -1;
+     if links.Count > 0 then
+     begin
+        GetPic(links[inx]);
+        labelPicNumber.Caption:= IntToStr(inx + 1);
+        SpinEdit1.Value:= inx + 1;
+     end;
+end;
+
+procedure TForm1.BtnForwardClick(Sender: TObject);
+begin
+     if links = nil then exit;
+     if links.Count = 0 then exit;
+     if inx < links.Count -1 then
+        inc(inx)
+     else
+        inx:= 0;
+     if links.Count > 0 then
+     begin
+        GetPic(links[inx]);
+        labelPicNumber.Caption:= IntToStr(inx + 1);
+        SpinEdit1.Value:= inx + 1;
+     end;
+end;
+
+procedure TForm1.EditSearchKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+     if EditSearch.Text = '' then exit;
+     if Key = VK_Return then
+        Button1.Click;
+end;
+
 function TForm1.getHTML(): string;
 var
    cli: TFPHTTPClient;
@@ -124,7 +194,11 @@ var
 
 begin
       InitSSLInterface;
-      search:= '';
+      search:= EditSearch.Text;
+      if EditSearch.Text = '' then
+         search:= ''
+      else
+          search:= 's/photos/' + search.Replace(' ', '-');
       url:= 'https://unsplash.com/'+search;
       cli:= TFPHTTPClient.Create(nil);
       cli.AllowRedirect:= true;
@@ -170,7 +244,6 @@ procedure Tform1.getRandomPic(links: TStringList);
 var
    url, url2, pic_html: string;
    client: TFPHTTPClient;
-   inx: integer;
 begin
      client := TFPHTTPClient.Create(nil);
      newURLs := TStringStream.Create('');
@@ -185,6 +258,32 @@ begin
      url:= links[inx].Replace('/download', '');
    //  StatusBar1.Panels.Items[1].Text:= url;
      pic_html:= getHTML2(url);
+     LabelTotal.Caption:= 'Total Pics: ' + IntToStr(links.Count);
+     labelPicNumber.Caption:= IntToStr(inx + 1);
+     SpinEdit1.Value:= inx + 1;
+  //   WriteLn(pic_html);
+     url2:= getURLs2(pic_html);
+     WriteLn('URL2 is: ' + url);
+     StatusBar1.Panels.Items[1].Text:= url;
+     client.SimpleGet(url2, newURLs);
+     newURLs.Position:= 0;
+     Image1.Picture.LoadFromStream(newURLs);
+     Image1.Stretch:= true;
+     Image1.Proportional:= true;
+end;
+
+
+procedure Tform1.getPic(url: string);
+var
+   url2, pic_html: string;
+   client: TFPHTTPClient;
+begin
+     url:= url.Replace('/download', '');
+     client := TFPHTTPClient.Create(nil);
+     newURLs := TStringStream.Create('');
+   //  StatusBar1.Panels.Items[1].Text:= url;
+     pic_html:= getHTML2(url);
+     LabelTotal.Caption:= 'Total Pics: ' + IntToStr(links.Count);
   //   WriteLn(pic_html);
      url2:= getURLs2(pic_html);
      WriteLn('URL2 is: ' + url);

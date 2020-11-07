@@ -24,6 +24,7 @@ object Form1: TForm1
     BorderSpacing.Top = 16
     BorderSpacing.Right = 10
     BorderSpacing.Bottom = 10
+    Center = True
   end
   object Panel1: TPanel
     AnchorSideLeft.Control = Owner
@@ -61,14 +62,98 @@ object Form1: TForm1
       AnchorSideTop.Side = asrBottom
       Left = 21
       Height = 19
-      Top = 62
+      Top = 110
       Width = 75
-      BorderSpacing.Top = 12
+      BorderSpacing.Top = 60
       Caption = 'LabelSaved'
       Font.Color = clGreen
       Font.Style = [fsBold]
       ParentColor = False
       ParentFont = False
+    end
+    object EditSearch: TEdit
+      AnchorSideLeft.Control = Button1
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = Button1
+      AnchorSideTop.Side = asrCenter
+      Left = 194
+      Height = 30
+      Top = 18
+      Width = 200
+      BorderSpacing.Left = 50
+      OnKeyDown = EditSearchKeyDown
+      TabOrder = 1
+      TextHint = 'Search'
+    end
+    object LabelTotal: TLabel
+      AnchorSideLeft.Control = EditSearch
+      AnchorSideTop.Control = EditSearch
+      AnchorSideTop.Side = asrBottom
+      Left = 194
+      Height = 19
+      Top = 54
+      Width = 59
+      BorderSpacing.Top = 6
+      Caption = 'Total Pics:'
+      ParentColor = False
+    end
+    object BtnBack: TButton
+      AnchorSideLeft.Control = EditSearch
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = EditSearch
+      AnchorSideTop.Side = asrCenter
+      Left = 424
+      Height = 25
+      Top = 21
+      Width = 75
+      BorderSpacing.Left = 30
+      Caption = '<'
+      OnClick = BtnBackClick
+      TabOrder = 2
+    end
+    object BtnForward: TButton
+      AnchorSideLeft.Control = BtnBack
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = BtnBack
+      AnchorSideTop.Side = asrCenter
+      Left = 529
+      Height = 25
+      Top = 21
+      Width = 75
+      BorderSpacing.Left = 30
+      Caption = '>'
+      OnClick = BtnForwardClick
+      TabOrder = 3
+    end
+    object LabelPicNumber: TLabel
+      AnchorSideLeft.Control = BtnForward
+      AnchorSideLeft.Side = asrBottom
+      AnchorSideTop.Control = BtnForward
+      AnchorSideTop.Side = asrCenter
+      Left = 620
+      Height = 19
+      Top = 24
+      Width = 8
+      BorderSpacing.Left = 16
+      Caption = '0'
+      ParentColor = False
+    end
+    object SpinEdit1: TSpinEdit
+      AnchorSideLeft.Control = BtnBack
+      AnchorSideTop.Control = BtnBack
+      AnchorSideTop.Side = asrBottom
+      Left = 424
+      Height = 28
+      Hint = 'Direct enter a picture number'
+      Top = 62
+      Width = 96
+      BorderSpacing.Top = 16
+      MinValue = 1
+      OnKeyDown = SpinEdit1KeyDown
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 4
+      Value = 1
     end
   end
   object StatusBar1: TStatusBar
